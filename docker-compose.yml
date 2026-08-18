@@ -1,0 +1,161 @@
+name: global-public-health
+
+services:
+  internet-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: global_health_internet
+      POSTGRES_USER: health_internet
+      POSTGRES_PASSWORD: ${INTERNET_DB_PASSWORD:?set INTERNET_DB_PASSWORD}
+    command: ["postgres", "-c", "wal_level=replica", "-c", "archive_mode=on", "-c", "archive_timeout=900s", "-c", "archive_command=test ! -f /var/lib/postgresql/wal_archive/%f && cp %p /var/lib/postgresql/wal_archive/%f"]
+    volumes: [internet_db:/var/lib/postgresql/data, internet_wal:/var/lib/postgresql/wal_archive]
+    networks: [internet_zone]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U health_internet -d global_health_internet"], interval: 10s, timeout: 5s, retries: 10}
+    restart: unless-stopped
+
+  intranet-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: global_health_intranet
+      POSTGRES_USER: health_intranet
+      POSTGRES_PASSWORD: ${INTRANET_DB_PASSWORD:?set INTRANET_DB_PASSWORD}
+    command: ["postgres", "-c", "wal_level=replica", "-c", "archive_mode=on", "-c", "archive_timeout=900s", "-c", "archive_command=test ! -f /var/lib/postgresql/wal_archive/%f && cp %p /var/lib/postgresql/wal_archive/%f"]
+    volumes: [intranet_db:/var/lib/postgresql/data, intranet_wal:/var/lib/postgresql/wal_archive]
+    networks: [intranet_zone]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U health_intranet -d global_health_intranet"], interval: 10s, timeout: 5s, retries: 10}
+    restart: unless-stopped
+
+  internet-redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${INTERNET_REDIS_PASSWORD:?set INTERNET_REDIS_PASSWORD}"]
+    volumes: [internet_redis:/data]
+    networks: [internet_zone]
+    healthcheck: {test: ["CMD", "redis-cli", "-a", "${INTERNET_REDIS_PASSWORD}", "ping"], interval: 10s, timeout: 5s, retries: 10}
+    restart: unless-stopped
+
+  intranet-redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${INTRANET_REDIS_PASSWORD:?set INTRANET_REDIS_PASSWORD}"]
+    volumes: [intranet_redis:/data]
+    networks: [intranet_zone]
+    healthcheck: {test: ["CMD", "redis-cli", "-a", "${INTRANET_REDIS_PASSWORD}", "ping"], interval: 10s, timeout: 5s, retries: 10}
+    restart: unless-stopped
+
+  transfer-broker:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: transfer
+      RABBITMQ_DEFAULT_PASS: ${TRANSFER_QUEUE_PASSWORD:?set TRANSFER_QUEUE_PASSWORD}
+    volumes: [transfer_queue:/var/lib/rabbitmq]
+    networks:
+      transfer_out: {aliases: [transfer-broker]}
+      transfer_in: {aliases: [transfer-broker]}
+    restart: unless-stopped
+
+  internet-api:
+    build: {context: ./backend, dockerfile: Dockerfile.internet}
+    environment:
+      APP_ENV: production
+      INTERNET_DATABASE_URL: postgresql+psycopg://health_internet:${INTERNET_DB_PASSWORD}@internet-db:5432/global_health_internet
+      SECRET_KEY: ${INTERNET_SECRET_KEY:?set INTERNET_SECRET_KEY}
+      FIELD_ENCRYPTION_KEY: ${INTERNET_FIELD_KEY:?set INTERNET_FIELD_KEY}
+      BOOTSTRAP_ADMIN_PASSWORD: ${INTERNET_ADMIN_PASSWORD:?set INTERNET_ADMIN_PASSWORD}
+      TRANSFER_ENCRYPTION: ${TRANSFER_ENCRYPTION:-AES-256-GCM}
+      TRANSFER_SECRET: ${TRANSFER_SECRET:?set TRANSFER_SECRET}
+      TRANSFER_API_KEY: ${TRANSFER_API_KEY:?set TRANSFER_API_KEY}
+      SM2_RECIPIENT_PUBLIC_KEY: ${SM2_RECIPIENT_PUBLIC_KEY:-}
+      SM2_SIGNING_PRIVATE_KEY: ${SM2_SIGNING_PRIVATE_KEY:-}
+      MESSAGE_QUEUE_URL: amqp://transfer:${TRANSFER_QUEUE_PASSWORD}@transfer-broker:5672/%2F
+      REDIS_URL: redis://:${INTERNET_REDIS_PASSWORD}@internet-redis:6379/0
+      ENABLE_SCHEDULER: "true"
+      ENABLE_MAINTENANCE: "true"
+      SEED_DEMO_DATA: "false"
+      CORS_ORIGINS: http://localhost:5173
+    volumes:
+      - internet_raw:/app/runtime/raw
+      - internet_backups:/app/runtime/backups
+      - internet_logs:/app/runtime/logs
+      - transfer_outbox:/app/runtime/transfer
+    depends_on:
+      internet-db: {condition: service_healthy}
+      internet-redis: {condition: service_healthy}
+    networks: [internet_zone, transfer_out]
+    restart: unless-stopped
+
+  intranet-api:
+    build: {context: ./backend, dockerfile: Dockerfile.intranet}
+    environment:
+      APP_ENV: production
+      INTRANET_DATABASE_URL: postgresql+psycopg://health_intranet:${INTRANET_DB_PASSWORD}@intranet-db:5432/global_health_intranet
+      SECRET_KEY: ${INTRANET_SECRET_KEY:?set INTRANET_SECRET_KEY}
+      FIELD_ENCRYPTION_KEY: ${INTRANET_FIELD_KEY:?set INTRANET_FIELD_KEY}
+      BOOTSTRAP_ADMIN_PASSWORD: ${INTRANET_ADMIN_PASSWORD:?set INTRANET_ADMIN_PASSWORD}
+      TRANSFER_ENCRYPTION: ${TRANSFER_ENCRYPTION:-AES-256-GCM}
+      TRANSFER_SECRET: ${TRANSFER_SECRET:?set TRANSFER_SECRET}
+      TRANSFER_API_KEY: ${TRANSFER_API_KEY:?set TRANSFER_API_KEY}
+      SM2_RECIPIENT_PRIVATE_KEY: ${SM2_RECIPIENT_PRIVATE_KEY:-}
+      SM2_SIGNING_PUBLIC_KEY: ${SM2_SIGNING_PUBLIC_KEY:-}
+      MESSAGE_QUEUE_URL: amqp://transfer:${TRANSFER_QUEUE_PASSWORD}@transfer-broker:5672/%2F
+      REDIS_URL: redis://:${INTRANET_REDIS_PASSWORD}@intranet-redis:6379/0
+      ENABLE_SCHEDULER: "false"
+      ENABLE_RECEIVER: "true"
+      ENABLE_MAINTENANCE: "true"
+      ENABLE_API_POLLING: ${ENABLE_API_POLLING:-false}
+      API_POLL_BASE_URL: ${API_POLL_BASE_URL:-}
+      REQUIRE_ADMIN_MFA: "true"
+      AUTH_MODE: ${AUTH_MODE:-local}
+      LDAP_SERVER_URL: ${LDAP_SERVER_URL:-}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-}
+      LDAP_BIND_DN: ${LDAP_BIND_DN:-}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD:-}
+      LDAP_DEFAULT_ROLE: ${LDAP_DEFAULT_ROLE:-read_only}
+      PASSENGER_INBOUND_ROOTS: /app/runtime/passenger_inbound
+      SEED_DEMO_DATA: "false"
+      CORS_ORIGINS: http://localhost:5174
+    volumes:
+      - intranet_inbound:/app/runtime/inbound
+      - intranet_backups:/app/runtime/backups
+      - intranet_logs:/app/runtime/logs
+      - passenger_inbound:/app/runtime/passenger_inbound
+    depends_on:
+      intranet-db: {condition: service_healthy}
+      intranet-redis: {condition: service_healthy}
+    networks: [intranet_zone, transfer_in]
+    restart: unless-stopped
+
+  internet-web:
+    build: {context: ./frontend, dockerfile: Dockerfile.internet}
+    ports: ["5173:8080"]
+    depends_on: [internet-api]
+    networks: [internet_zone]
+    restart: unless-stopped
+
+  intranet-web:
+    build: {context: ./frontend, dockerfile: Dockerfile.intranet}
+    ports: ["5174:8080"]
+    depends_on: [intranet-api]
+    networks: [intranet_zone]
+    restart: unless-stopped
+
+networks:
+  internet_zone: {}
+  intranet_zone: {internal: true}
+  transfer_out: {internal: true}
+  transfer_in: {internal: true}
+
+volumes:
+  internet_db: {}
+  intranet_db: {}
+  internet_wal: {}
+  intranet_wal: {}
+  internet_redis: {}
+  intranet_redis: {}
+  transfer_queue: {}
+  internet_raw: {}
+  internet_backups: {}
+  intranet_backups: {}
+  internet_logs: {}
+  intranet_logs: {}
+  passenger_inbound: {}
+  transfer_outbox: {}
+  intranet_inbound: {}

@@ -1,0 +1,50 @@
+[
+  {
+    "source_id": "who-dons",
+    "name": "WHO Disease Outbreak News",
+    "adapter_type": "rss",
+    "url": "https://www.who.int/rss-feeds/news-english.xml",
+    "frequency_seconds": 21600,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  },
+  {
+    "source_id": "ecdc-cdtr",
+    "name": "ECDC Communicable Disease Threats",
+    "adapter_type": "rss",
+    "url": "https://www.ecdc.europa.eu/en/news-events/rss",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  },
+  {
+    "source_id": "promed",
+    "name": "ProMED-mail",
+    "adapter_type": "rss",
+    "url": "https://promedmail.org/feed/",
+    "frequency_seconds": 900,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  },
+  {
+    "source_id": "jhu-csse",
+    "name": "JHU CSSE",
+    "adapter_type": "jhu_csv",
+    "url": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  },
+  {
+    "source_id": "owid",
+    "name": "Our World in Data",
+    "adapter_type": "owid_csv",
+    "url": "https://covid.ourworldindata.org/data/owid-covid-data.csv",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  },
+  {
+    "source_id": "healthmap",
+    "name": "HealthMap",
+    "adapter_type": "rss",
+    "url": "https://www.healthmap.org/rss.php",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  }
+]

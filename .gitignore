@@ -1,0 +1,12 @@
+backend/.venv/
+backend/runtime/
+/.codex-web/
+/runtime/
+backend/.pytest_cache/
+backend/**/__pycache__/
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+.coverage
+htmlcov/
+*.log

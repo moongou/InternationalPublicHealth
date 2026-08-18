@@ -1,0 +1,15 @@
+FROM python:3.13-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 DEPLOYMENT_MODE=intranet
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 health
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY alembic.ini .
+COPY migrations ./migrations
+COPY config ./config
+COPY app ./app
+RUN mkdir -p /app/runtime && chown -R health:health /app
+USER health
+EXPOSE 8001
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.intranet_main:app --host 0.0.0.0 --port 8001 --workers 1"]

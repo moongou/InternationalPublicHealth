@@ -1,0 +1,44 @@
+{
+  "name": "global-health-monitor-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode internet --open /internet.html",
+    "dev:internet": "vite --mode internet --open /internet.html",
+    "dev:intranet": "vite --mode intranet --open /intranet.html --port 5174",
+    "typecheck": "tsc -b",
+    "build": "npm run typecheck && npm run build:internet && npm run build:intranet && npm run verify:isolation && npm run verify:offline",
+    "build:internet": "vite build --mode internet",
+    "build:intranet": "vite build --mode intranet",
+    "preview": "vite preview",
+    "test": "vitest run --pool=threads --poolOptions.threads.singleThread=true --no-file-parallelism",
+    "verify:isolation": "node scripts/verify-isolation.mjs",
+    "verify:offline": "node scripts/verify-offline.mjs"
+  },
+  "dependencies": {
+    "@deck.gl/aggregation-layers": "^9.1.14",
+    "@deck.gl/core": "^9.1.14",
+    "@deck.gl/layers": "^9.1.14",
+    "@deck.gl/mapbox": "^9.1.14",
+    "lucide-react": "^0.468.0",
+    "maplibre-gl": "^5.6.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "recharts": "^3.1.2",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
+  },
+  "devDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.62.4",
+    "@types/d3-color": "^3.1.0",
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@types/topojson-client": "^3.1.5",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.1.2",
+    "vitest": "^3.2.4"
+  }
+}
