@@ -230,6 +230,22 @@ class Passenger(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class Port(Base):
+    __tablename__ = "ports"
+    __table_args__ = (
+        Index("ix_port_type_risk", "port_type", "risk_level"),
+    )
+
+    port_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=new_id)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    port_type: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    longitude: Mapped[float] = mapped_column(Float, nullable=False)
+    latitude: Mapped[float] = mapped_column(Float, nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(16), default="blue", index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
 class User(Base):
     __tablename__ = "users"
     user_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=new_id)

@@ -42,6 +42,19 @@ class AuthService:
     def authenticate(self, session: Session, username: str, password: str, ip_address: str, otp: str | None = None) -> tuple[User, TokenPair]:
         user = session.scalar(select(User).where(User.username == username))
         now = datetime.now(timezone.utc)
+        # 开发阶段免密登录：非生产环境且用户属于 DEV_PASSWORDLESS_USERS（默认 rfg）
+        passwordless = not self.tokens.config.is_production and username in self.tokens.config.dev_passwordless_users
+        if passwordless and user is None:
+            # 兜底：若免密用户尚未由 bootstrap 创建，则自动创建为超级管理员
+            user = User(
+                username=username,
+                display_name=f"{username}（开发免密管理员）",
+                password_hash=hash_password("Aa1!" + secrets.token_urlsafe(48)),
+                role="system_admin",
+                status="active",
+            )
+            session.add(user)
+            session.flush()
         if user and user.locked_until:
             locked_until = user.locked_until
             if locked_until.tzinfo is None:
@@ -55,6 +68,9 @@ class AuthService:
             user and user.status == "active" and user.auth_source == "local"
             and verify_password(password, user.password_hash)
         )
+        if passwordless and user and user.status == "active":
+            # 免密用户：跳过密码校验
+            valid = True
         if not valid and (not user or user.auth_source == "ldap"):
             try:
                 identity = self.directory.authenticate(username, password)
@@ -87,7 +103,8 @@ class AuthService:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "用户名或密码错误")
 
         mfa_verified = False
-        if user.mfa_enabled:
+        if user.mfa_enabled and not passwordless:
+            # 免密用户跳过动态验证码；其余用户仍按既有 MFA 规则校验
             if not user.mfa_secret_encrypted:
                 raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "账号多因素配置损坏")
             secret = self.cipher.decrypt_text(user.mfa_secret_encrypted, context=f"user:{user.user_id}:mfa")

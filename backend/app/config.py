@@ -47,6 +47,7 @@ class Settings:
     enable_maintenance: bool = False
     require_admin_mfa: bool = False
     auth_mode: str = "local"
+    dev_passwordless_users: tuple[str, ...] = ()
     ldap_server_url: str = ""
     ldap_base_dn: str = ""
     ldap_bind_dn: str = ""
@@ -139,6 +140,8 @@ def load_settings(mode: str | None = None) -> Settings:
         enable_maintenance=os.getenv("ENABLE_MAINTENANCE", "true" if environment == "production" else "false").lower() == "true",
         require_admin_mfa=os.getenv("REQUIRE_ADMIN_MFA", "true" if environment == "production" and deployment_mode == "intranet" else "false").lower() == "true",
         auth_mode=os.getenv("AUTH_MODE", "local"),
+        # 开发阶段免密登录用户（仅 development 生效；生产环境强制为空，保证安全）
+        dev_passwordless_users=_origins(os.getenv("DEV_PASSWORDLESS_USERS", "rfg")) if environment != "production" else (),
         ldap_server_url=os.getenv("LDAP_SERVER_URL", ""),
         ldap_base_dn=os.getenv("LDAP_BASE_DN", ""),
         ldap_bind_dn=os.getenv("LDAP_BIND_DN", ""),

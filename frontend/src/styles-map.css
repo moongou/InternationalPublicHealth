@@ -21,3 +21,49 @@
 @media (max-width: 480px){
   .kpi-grid,.passenger-kpis,.transfer-kpis,.admin-kpis,.summary-strip{grid-template-columns:1fr}.dashboard-grid--bottom{display:block}.dashboard-grid--bottom>.panel{margin-bottom:12px}.alert-panel,.event-panel,.distribution-panel{grid-column:auto}.distribution-panel .donut-wrap{width:100%;float:none}.distribution-panel .distribution-list{padding-top:0}.page-heading h1{font-size:21px}.updated{display:none}.risk-index-hero{flex-direction:column;text-align:center}.level-card-grid{grid-template-columns:1fr}.rule-stats{grid-template-columns:1fr}.service-grid>div{grid-template-columns:1fr}.quick-actions>div{grid-template-columns:1fr}.app-footer span:last-child{display:none}.map-title .map-logo{display:none}.timeline-speed{display:none}
 }
+
+/* ===== 疫病主题观察 + 地图字体可读性提升 ===== */
+.disease-theme{padding:11px 10px 13px;border-bottom:1px solid rgba(127,158,187,.08);background:rgba(4,13,21,.3)}
+.disease-theme__label{display:block;margin-bottom:8px;color:#7a93a6;font-size:10px;letter-spacing:.5px}
+.disease-theme__tabs{display:flex;flex-wrap:wrap;gap:6px}
+.disease-tab{height:26px;padding:0 11px;border:1px solid rgba(110,157,184,.2);border-radius:13px;color:#7d95a8;background:rgba(12,28,43,.6);font-size:10px;cursor:pointer;transition:.15s}
+.disease-tab:hover{color:#b7cbd9;border-color:rgba(53,209,193,.34)}
+.disease-tab.is-active{color:var(--teal);border-color:rgba(53,209,193,.45);background:rgba(53,209,193,.14);font-weight:600}
+.collapse-map{font-size:10px}
+.map-title b{font-size:13px}
+.map-title small{font-size:9px}
+.map-live{font-size:9px}
+.map-toolbar label{height:32px}
+.map-toolbar input{font-size:10px}
+.map-toolbar select,.map-toolbar>button{font-size:10px}
+.map-loading span{font-size:10px}
+.layer-panel>header span{font-size:10px}
+.layer-panel>button{min-height:46px}
+.layer-panel>button b{font-size:10px}
+.layer-panel>button small{font-size:9px}
+.map-legend>span{font-size:9px}
+.map-legend>div{font-size:9px}
+.map-summary span{font-size:9px}
+.map-summary strong{font-size:13px}
+.map-zoom-world{font-size:9px}
+.country-code-large{font-size:10px}
+.country-detail header small{font-size:8px}
+.country-detail h2{font-size:15px}
+.country-score span{font-size:8px}
+.country-metrics span{font-size:8px}
+.country-metrics b{font-size:10px}
+.country-detail section h3{font-size:10px}
+.factor-bars>div{font-size:8px}
+.country-events b{font-size:9px}
+.country-events small{font-size:8px}
+.country-events p{font-size:9px}
+.country-analysis-button{font-size:9px}
+.reopen-detail{font-size:9px}
+.timeline-date b{font-size:8px}
+.timeline-labels{font-size:8px}
+.timeline-speed{font-size:8px}
+.map-coordinates{font-size:8px}
+.risk-map-popup b{font-size:10px}
+.risk-map-popup span{font-size:9px}
+.risk-map-popup small{font-size:9px}
+.maplibregl-ctrl-attrib{font-size:9px!important}

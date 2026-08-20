@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownToLine, Bot, ChevronRight, CircleAlert, Filter, MapPin, Search, X } from 'lucide-react'
+import { ArrowDownToLine, Bot, ChevronRight, CircleAlert, ExternalLink, Filter, MapPin, Search, X } from 'lucide-react'
 import type { DiseaseEvent, RiskLevel } from '../types'
 import { formatNumber, formatTime, levelMeta } from '../utils'
 import { postJson } from '../api'
 
-export default function EventsPage({ events, actions }: { events: DiseaseEvent[]; actions?: React.ReactNode }) {
+export default function EventsPage({ events, actions, showSourceLink = false }: { events: DiseaseEvent[]; actions?: React.ReactNode; showSourceLink?: boolean }) {
   const [query, setQuery] = useState('')
   const [level, setLevel] = useState<'all' | RiskLevel>('all')
   const [selected, setSelected] = useState<DiseaseEvent | null>(null)
@@ -60,7 +60,7 @@ export default function EventsPage({ events, actions }: { events: DiseaseEvent[]
               <td><div className="event-title-cell"><b>{event.title}</b><small>{event.id} · {event.event_type}</small></div></td>
               <td><span className="country-cell"><span>{event.country_code.slice(0, 2)}</span>{event.country}</span></td>
               <td>{event.disease}</td><td><b>{formatNumber(event.cases)}</b><small className="slash-count"> / {formatNumber(event.deaths)}</small></td>
-              <td><span className="source-tag">{event.source}</span></td><td>{formatTime(event.published_at)}</td>
+              <td>{showSourceLink && event.source_url ? <a className="source-link" href={event.source_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}><span className="source-tag">{event.source}</span><ExternalLink size={12}/></a> : <span className="source-tag">{event.source}</span>}</td><td>{formatTime(event.published_at)}</td>
               <td><span className={`confidence ${event.confidence >= .9 ? 'high' : ''}`}><i style={{ width: `${event.confidence * 100}%` }}/><b>{(event.confidence * 100).toFixed(0)}%</b></span></td><td><ChevronRight size={16}/></td>
             </tr>)}</tbody>
           </table>
@@ -75,7 +75,7 @@ export default function EventsPage({ events, actions }: { events: DiseaseEvent[]
           <div className="detail-drawer__body">
             <h2>{selected.title}</h2><p className="detail-lead">该事件由 {selected.source} 于 {formatTime(selected.published_at)} 发布，经多源交叉验证后纳入监测。</p>
             <div className="detail-metrics"><div><span>累计病例</span><strong>{formatNumber(selected.cases)}</strong></div><div><span>报告死亡</span><strong>{formatNumber(selected.deaths)}</strong></div><div><span>可信度</span><strong>{(selected.confidence * 100).toFixed(0)}%</strong></div></div>
-            <section className="detail-section"><h3>事件信息</h3><dl><div><dt>国家 / 地区</dt><dd><MapPin size={13}/>{selected.country}</dd></div><div><dt>涉及疾病</dt><dd>{selected.disease}</dd></div><div><dt>事件类型</dt><dd>{selected.event_type}</dd></div><div><dt>原始来源</dt><dd>{selected.source}</dd></div></dl></section>
+            <section className="detail-section"><h3>事件信息</h3><dl><div><dt>国家 / 地区</dt><dd><MapPin size={13}/>{selected.country}</dd></div><div><dt>涉及疾病</dt><dd>{selected.disease}</dd></div><div><dt>事件类型</dt><dd>{selected.event_type}</dd></div><div><dt>原始来源</dt><dd>{showSourceLink && selected.source_url ? <a className="source-link" href={selected.source_url} target="_blank" rel="noopener noreferrer">{selected.source}<ExternalLink size={12}/></a> : selected.source}</dd></div></dl></section>
             <section className="detail-section"><h3>{aiAnalysis?'大语言模型研判':'事实摘要'}</h3><div className="analysis-note"><CircleAlert size={18}/><p style={{whiteSpace:'pre-wrap'}}>{aiAnalysis||`当前来源记录 ${formatNumber(selected.cases)} 例、死亡 ${formatNumber(selected.deaths)} 例，可信度 ${(selected.confidence*100).toFixed(0)}%，系统风险分级为${levelMeta[selected.level].label}色。未调用模型前仅展示来源事实，不推断未提供的信息。`}</p></div></section>
             <section className="detail-section"><h3>处置建议</h3><ul className="check-list"><li>核验近14日相关地区旅居史</li><li>关注发热、皮疹等特异性症状</li><li>异常情况按口岸联防联控流程处置</li></ul></section>
           </div>

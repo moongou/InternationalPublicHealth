@@ -10,3 +10,6 @@ frontend/*.tsbuildinfo
 .coverage
 htmlcov/
 *.log
+.env
+.codebuddy/
+.dev-dashboard/

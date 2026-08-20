@@ -1,7 +1,7 @@
 {
   "name": "global-health-monitor-web",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite --mode internet --open /internet.html",
@@ -30,7 +30,6 @@
     "world-atlas": "^2.0.2"
   },
   "devDependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.62.4",
     "@types/d3-color": "^3.1.0",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.10",

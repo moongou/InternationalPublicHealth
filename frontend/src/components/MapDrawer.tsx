@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import { MapboxOverlay } from '@deck.gl/mapbox'
-import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers'
+import { ArcLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import { HeatmapLayer } from '@deck.gl/aggregation-layers'
 import { feature } from 'topojson-client'
 import worldAtlas from 'world-atlas/countries-110m.json'
@@ -9,7 +9,7 @@ import {
   ArrowDownToLine, ChevronLeft, ChevronRight, CircleDot, Flame, Globe2,
   Layers3, Network, Pause, Plane, Play, Search, ShipWheel, UsersRound, X, ZoomIn,
 } from 'lucide-react'
-import type { Country, DiseaseEvent, RiskLevel, TransferLink } from '../types'
+import type { Country, DiseaseEvent, Port, RiskLevel, TransferLink } from '../types'
 import { requestJson } from '../api'
 import { formatNumber, levelMeta } from '../utils'
 
@@ -45,16 +45,38 @@ const layerOptions: Array<{id:LayerId;label:string;desc:string;icon:typeof Layer
   {id:'ports',label:'中国口岸分布',desc:'内网布控口岸',icon:Plane},
 ]
 
-const ports = [
-  {name:'北京首都国际机场',position:[116.59,40.08] as [number,number],type:'空港'},
-  {name:'上海浦东国际机场',position:[121.81,31.14] as [number,number],type:'空港'},
-  {name:'广州白云国际机场',position:[113.3,23.39] as [number,number],type:'空港'},
-  {name:'深圳湾口岸',position:[113.95,22.5] as [number,number],type:'陆路'},
-  {name:'青岛港',position:[120.32,36.06] as [number,number],type:'海港'},
-  {name:'天津港',position:[117.72,39.0] as [number,number],type:'海港'},
-]
+const portTypeLabel: Record<string, string> = { sea: '海港', land: '陆路', air: '空港', rail: '铁路' }
 
 const deckColor = (level: RiskLevel): [number,number,number,number] => level === 'red' ? [255,68,94,220] : level === 'orange' ? [255,159,67,210] : level === 'yellow' ? [245,206,72,200] : [78,161,255,190]
+
+// 将源点经度 wrap 到与目标点最短路径（±180 内），避免远程弧线跨反经线绕远、曲率过大溢出视口
+const wrapLng = (source: [number, number], target: [number, number]): [number, number] => {
+  let lng = source[0]
+  while (lng - target[0] > 180) lng -= 360
+  while (lng - target[0] < -180) lng += 360
+  return [lng, source[1]]
+}
+
+// 反经线（antimeridian）切割：对跨 ±180° 的多边形 ring 做经度 wrap，
+// 消除「贯穿左右、无法消除」的水平丝线（俄罗斯/斐济/南极等跨反经线多边形连线所致）
+const wrapRing = (ring: number[][]): number[][] => {
+  const result = ring.map((p) => [p[0], p[1]] as [number, number])
+  let offset = 0
+  for (let i = 1; i < ring.length; i++) {
+    const delta = ring[i][0] - ring[i - 1][0]
+    if (delta > 180) offset -= 360
+    else if (delta < -180) offset += 360
+    result[i][0] = ring[i][0] + offset
+  }
+  return result
+}
+
+const splitAntimeridian = (geometry: any): any => {
+  if (!geometry) return geometry
+  if (geometry.type === 'Polygon') return { ...geometry, coordinates: geometry.coordinates.map((ring: number[][]) => wrapRing(ring)) }
+  if (geometry.type === 'MultiPolygon') return { ...geometry, coordinates: geometry.coordinates.map((poly: number[][][]) => poly.map((ring: number[][]) => wrapRing(ring))) }
+  return geometry
+}
 
 export default function MapDrawer({ open, onClose, countries, events, links, mode }: MapDrawerProps) {
   const containerRef=useRef<HTMLDivElement>(null)
@@ -71,6 +93,8 @@ export default function MapDrawer({ open, onClose, countries, events, links, mod
   const [query,setQuery]=useState('')
   const [disease,setDisease]=useState('全部疾病')
   const [riskHistory,setRiskHistory]=useState<RiskHistoryPoint[]>([])
+  const [ports,setPorts]=useState<Port[]>([])
+  const [zoom,setZoom]=useState(1.35)
 
   const timelineDates=useMemo(()=>Array.from({length:14},(_,index)=>{
     const date=new Date();date.setHours(23,59,59,999);date.setDate(date.getDate()-(13-index));return date
@@ -85,10 +109,11 @@ export default function MapDrawer({ open, onClose, countries, events, links, mod
   const worldData=useMemo(()=>{
     const atlas = worldAtlas as unknown as {objects:{countries:never}}
     const collection=feature(worldAtlas as never,atlas.objects.countries) as unknown as {type:'FeatureCollection';features:Array<{id?:string|number;properties:Record<string,unknown>|null;geometry:unknown}>}
-    return {...collection,features:collection.features.map((item)=>{const numeric=String(item.id??'').padStart(3,'0');const code=isoNumeric[numeric];const country=effectiveCountries.find(c=>c.code===code);return {...item,properties:{...(item.properties??{}),code:country?.code??'',name_zh:country?.name??'',risk_score:country?.risk_score??0,level:country?.level??'none',active_cases:country?.active_cases??0,trend_7d:country?.trend_7d??0}}})}
+    return {...collection,features:collection.features.map((item)=>{const numeric=String(item.id??'').padStart(3,'0');const code=isoNumeric[numeric];const country=effectiveCountries.find(c=>c.code===code);return {...item,geometry:splitAntimeridian(item.geometry),properties:{...(item.properties??{}),code:country?.code??'',name_zh:country?.name??'',risk_score:country?.risk_score??0,level:country?.level??'none',active_cases:country?.active_cases??0,trend_7d:country?.trend_7d??0}}})}
   },[effectiveCountries])
 
   useEffect(()=>{if(open&&!riskHistory.length)requestJson<RiskHistoryPoint[]>('/map/risk-history?days=30').then(setRiskHistory).catch(()=>undefined)},[open,riskHistory.length])
+  useEffect(()=>{if(open&&mode==='intranet'&&!ports.length)requestJson<{items:Port[]}>('/ports?page_size=2000').then(result=>setPorts(result.items.filter(item=>item.enabled))).catch(()=>undefined)},[open,mode,ports.length])
 
   useEffect(()=>{
     if(!open||mapRef.current||!containerRef.current)return
@@ -103,6 +128,8 @@ export default function MapDrawer({ open, onClose, countries, events, links, mod
       const overlay=new MapboxOverlay({interleaved:true,layers:[]})
       overlayRef.current=overlay
       map.addControl(overlay as unknown as maplibregl.IControl)
+      setZoom(map.getZoom())
+      map.on('zoom',()=>setZoom(map.getZoom()))
       setReady(true)
     })
     map.on('click','world-fill',(event)=>{
@@ -127,12 +154,13 @@ export default function MapDrawer({ open, onClose, countries, events, links, mod
     if(!ready||!overlayRef.current)return
     const layers=[]
     if(activeLayers.has('heat'))layers.push(new HeatmapLayer<DiseaseEvent>({id:'event-heat',data:filteredEvents,getPosition:d=>d.coordinates,getWeight:d=>Math.log10(d.cases+10),radiusPixels:58,intensity:1.4,threshold:.08,colorRange:[[20,55,95],[35,130,153],[55,199,165],[245,201,76],[255,128,61],[255,54,88]]}))
-    if(activeLayers.has('links'))layers.push(new ArcLayer<TransferLink>({id:'transfer-arcs',data:links,getSourcePosition:d=>d.source,getTargetPosition:d=>d.target,getSourceColor:d=>d.risk>=80?[255,64,92,210]:[255,164,69,190],getTargetColor:[49,216,197,220],getWidth:d=>1+d.volume/28,greatCircle:true,pickable:true}))
-    if(activeLayers.has('flows'))layers.push(new ArcLayer<Country>({id:'passenger-flow-arcs',data:effectiveCountries.filter(c=>c.code!=='CHN'),getSourcePosition:d=>d.center,getTargetPosition:()=>[104.2,35.86],getSourceColor:[87,133,255,110],getTargetColor:[53,211,192,180],getWidth:d=>Math.max(.6,(d.factors.travel??20)/28),greatCircle:true}))
+    if(activeLayers.has('links'))layers.push(new ArcLayer<TransferLink>({id:'transfer-arcs',data:links,getSourcePosition:d=>wrapLng(d.source as [number,number],d.target as [number,number]),getTargetPosition:d=>d.target,getSourceColor:d=>d.risk>=80?[255,64,92,210]:[255,164,69,190],getTargetColor:[49,216,197,220],getWidth:d=>1+d.volume/28,greatCircle:true,pickable:true}))
+    if(activeLayers.has('flows'))layers.push(new ArcLayer<Country>({id:'passenger-flow-arcs',data:effectiveCountries.filter(c=>c.code!=='CHN'),getSourcePosition:d=>wrapLng(d.center as [number,number],[104.2,35.86]),getTargetPosition:()=>[104.2,35.86],getSourceColor:[87,133,255,110],getTargetColor:[53,211,192,180],getWidth:d=>Math.max(.6,(d.factors.travel??20)/28),greatCircle:true}))
     if(activeLayers.has('bubbles'))layers.push(new ScatterplotLayer<DiseaseEvent>({id:'event-bubbles',data:filteredEvents,getPosition:d=>d.coordinates,getRadius:d=>Math.max(60000,Math.sqrt(d.cases+1)*21000),radiusMinPixels:5,radiusMaxPixels:32,getFillColor:d=>deckColor(d.level),getLineColor:[255,255,255,150],lineWidthMinPixels:1,stroked:true,pickable:true}))
-    if(activeLayers.has('ports'))layers.push(new ScatterplotLayer<(typeof ports)[number]>({id:'china-ports',data:ports,getPosition:d=>d.position,getRadius:()=>80000,radiusMinPixels:6,radiusMaxPixels:15,getFillColor:[40,221,201,230],getLineColor:[210,255,250,240],lineWidthMinPixels:1.5,stroked:true,pickable:true}))
-    overlayRef.current.setProps({layers,getTooltip:({object}:{object?:DiseaseEvent|TransferLink|(typeof ports)[number]})=>{if(!object)return null;if('title'in object)return {html:`<b>${object.title}</b><br/><span>${object.country} · ${formatNumber(object.cases)} 例</span>`,style:{backgroundColor:'#0d1c2b',color:'#dfeefa',fontSize:'12px',border:'1px solid #29435a',borderRadius:'8px'}};if('origin'in object)return {html:`<b>${object.origin} → 中国</b><br/><span>中转：${object.via} · 风险 ${object.risk}</span>`};if('position'in object)return {html:`<b>${object.name}</b><br/><span>${object.type}口岸</span>`};return null}})
-  },[ready,activeLayers,filteredEvents,links,effectiveCountries])
+    if(activeLayers.has('ports'))layers.push(new ScatterplotLayer<Port>({id:'china-ports',data:ports,getPosition:d=>[d.longitude,d.latitude],getRadius:()=>90000,radiusUnits:'meters',radiusMinPixels:5,radiusMaxPixels:13,getFillColor:d=>deckColor(d.risk_level),getLineColor:[220,245,255,240],lineWidthMinPixels:1.2,stroked:true,pickable:true}))
+    if(activeLayers.has('ports')&&zoom>=4)layers.push(new TextLayer<Port>({id:'china-port-labels',data:ports,getPosition:d=>[d.longitude,d.latitude],getText:d=>d.name,getSize:13,getColor:[222,240,252,235],getPixelOffset:[0,-16],getAlignmentBaseline:'top',fontFamily:'PingFang SC, Microsoft YaHei, sans-serif'}))
+    overlayRef.current.setProps({layers,getTooltip:({object}:{object?:DiseaseEvent|TransferLink|Port})=>{if(!object)return null;if('title'in object)return {html:`<b>${object.title}</b><br/><span>${object.country} · ${formatNumber(object.cases)} 例</span>`,style:{backgroundColor:'#0d1c2b',color:'#dfeefa',fontSize:'12px',border:'1px solid #29435a',borderRadius:'8px'}};if('origin'in object)return {html:`<b>${object.origin} → 中国</b><br/><span>中转：${object.via} · 风险 ${object.risk}</span>`};if('port_type'in object)return {html:`<b>${object.name}</b><br/><span>${portTypeLabel[object.port_type]??object.port_type} · ${levelMeta[object.risk_level].label}风险</span>`};return null}})
+  },[ready,activeLayers,filteredEvents,links,effectiveCountries,ports,zoom])
 
   useEffect(()=>{if(!ready||!mapRef.current)return;mapRef.current.setLayoutProperty('world-fill','visibility',activeLayers.has('risk')?'visible':'none');mapRef.current.setLayoutProperty('world-outline','visibility',activeLayers.has('risk')?'visible':'none')},[activeLayers,ready])
   useEffect(()=>{setSelected(current=>current?(effectiveCountries.find(country=>country.code===current.code)??current):(effectiveCountries[0]??null))},[effectiveCountries])
@@ -156,7 +184,7 @@ export default function MapDrawer({ open, onClose, countries, events, links, mod
     <div className="map-stage">
       <div ref={containerRef} className="map-container"/>
       {!ready&&<div className="map-loading"><Globe2 size={32}/><span>正在载入本地地图数据…</span></div>}
-      <aside className={`layer-panel ${panelOpen?'is-open':''}`}><header><span><Layers3 size={17}/>图层控制</span><button onClick={()=>setPanelOpen(false)}><X size={15}/></button></header>{layerOptions.filter(item=>mode==='intranet'||item.id!=='ports').map(({id,label,desc,icon:Icon})=><button key={id} className={activeLayers.has(id)?'active':''} onClick={()=>toggle(id)}><span className="layer-icon"><Icon size={17}/></span><span><b>{label}</b><small>{desc}</small></span><i><em/></i></button>)}<div className="map-legend"><span>国家风险分级</span>{(['red','orange','yellow','blue'] as RiskLevel[]).map(level=><div key={level}><i style={{background:levelMeta[level].color}}/><span>{levelMeta[level].label}色</span><b>{level==='red'?'≥80':level==='orange'?'60—79':level==='yellow'?'40—59':'<40'}</b></div>)}</div></aside>
+      <aside className={`layer-panel ${panelOpen?'is-open':''}`}><header><span><Layers3 size={17}/>观察角度</span><button onClick={()=>setPanelOpen(false)}><X size={15}/></button></header><div className="disease-theme"><span className="disease-theme__label">疫病主题</span><div className="disease-theme__tabs">{diseases.map(d=><button key={d} className={`disease-tab ${disease===d?'is-active':''}`} onClick={()=>setDisease(d)}>{d}</button>)}</div></div>{layerOptions.filter(item=>mode==='intranet'||item.id!=='ports').map(({id,label,desc,icon:Icon})=><button key={id} className={activeLayers.has(id)?'active':''} onClick={()=>toggle(id)}><span className="layer-icon"><Icon size={17}/></span><span><b>{label}</b><small>{desc}</small></span><i><em/></i></button>)}<div className="map-legend"><span>国家风险分级</span>{(['red','orange','yellow','blue'] as RiskLevel[]).map(level=><div key={level}><i style={{background:levelMeta[level].color}}/><span>{levelMeta[level].label}色</span><b>{level==='red'?'≥80':level==='orange'?'60—79':level==='yellow'?'40—59':'<40'}</b></div>)}</div></aside>
       <div className="map-summary"><div><span>截至所选日事件</span><strong>{filteredEvents.length}</strong></div><i/><div><span>红色风险国家</span><strong className="red">{effectiveCountries.filter(country=>country.level==='red').length}</strong></div><i/><div><span>影响国家</span><strong>{affectedCountries}</strong></div><i/><div><span>所选日新增</span><strong className="orange">+{newEvents}</strong></div></div>
       <button className="map-zoom-world" onClick={()=>mapRef.current?.flyTo({center:[55,21],zoom:1.35})}><ZoomIn size={16}/>全球视图</button>
       <aside className={`country-detail ${detailOpen&&selected?'is-open':''}`}>

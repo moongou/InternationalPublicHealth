@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import {
-  Activity, Bell, BookOpenCheck, ChevronDown, CircleUserRound, CloudDownload, DatabaseZap, FileClock,
+  Activity, Anchor, Bell, BookOpenCheck, ChevronDown, CircleUserRound, CloudDownload, DatabaseZap, FileClock,
   Globe2, LayoutDashboard, Menu, Radar, Settings2, ShieldCheck, UsersRound, X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -29,8 +29,9 @@ const nav: Array<{ id: PageId; label: string; hint: string; icon: LucideIcon; in
   { id: 'events', label: '疫情事件', hint: 'Events', icon: Radar },
   { id: 'risk', label: '风险研判', hint: 'Risk analysis', icon: Activity },
   { id: 'passengers', label: '旅客预警', hint: 'Port control', icon: UsersRound, intranet: true },
+  { id: 'ports', label: '口岸管理', hint: 'Port registry', icon: Anchor, intranet: true },
   { id: 'transfer', label: '数据摆渡', hint: 'Data transfer', icon: DatabaseZap },
-  { id: 'rules', label: '规则引擎', hint: 'Rule engine', icon: BookOpenCheck, roles: ['system_admin','data_analyst'] },
+  { id: 'rules', label: '规则引擎', hint: 'Rule engine', icon: BookOpenCheck, intranet: true, roles: ['system_admin','data_analyst'] },
   { id: 'admin', label: '系统管理', hint: 'Administration', icon: Settings2, roles: ['system_admin','auditor'] },
 ]
 
@@ -40,7 +41,7 @@ export default function Layout({ children, page, onPageChange, onOpenMap, connec
   const sourceTotal=sourceHealth.healthy+sourceHealth.degraded+sourceHealth.offline
   const sourcePercent=sourceTotal?sourceHealth.healthy/sourceTotal*100:100
   return (
-    <div className="app-shell">
+    <div className={`app-shell theme-${mode}`}>
       <aside className={`sidebar ${sidebarOpen ? 'sidebar--open' : ''}`}>
         <div className="brand">
           <div className="brand__mark"><Globe2 size={25} strokeWidth={1.8} /><span /></div>
@@ -50,7 +51,7 @@ export default function Layout({ children, page, onPageChange, onOpenMap, connec
 
         <div className="system-mode">
           <div className="system-mode__icon"><ShieldCheck size={18} /></div>
-          <div><span>{mode === 'intranet' ? '内网研判中心' : '互联网监测中心'}</span><small><i className={connected ? 'online' : 'demo'} />{connected ? '业务服务在线' : '业务服务未连接'}</small></div>
+          <div><span>{mode === 'intranet' ? '内网研判预警中心' : '互联网采集监测中心'}</span><small><i className={connected ? 'online' : 'demo'} />{connected ? '业务服务在线' : '业务服务未连接'}</small></div>
         </div>
 
         <nav className="nav-list" aria-label="主导航">

@@ -190,6 +190,47 @@ class LlmProviderUpdate(BaseModel):
     config_json: dict[str, Any] | None = None
 
 
+class LlmTestModelsRequest(BaseModel):
+    models: list[str] = Field(default_factory=list, max_length=200)
+
+
+class DatabaseSourceConfig(BaseModel):
+    """数据库数据源连接配置。
+
+    字段兼容 DeepAnalyze 的 host/database/user/password 映射，
+    同时支持 MaxCompute / ODPS 的显式字段名。
+    """
+    host: str = Field(default="", max_length=1200)
+    port: str = Field(default="", max_length=16)
+    database: str = Field(default="", max_length=240)
+    user: str = Field(default="", max_length=240)
+    password: str = Field(default="", max_length=4000)
+    # MaxCompute / ODPS 专用字段
+    endpoint: str = Field(default="", max_length=1200)
+    project: str = Field(default="", max_length=240)
+    access_id: str = Field(default="", max_length=240)
+    access_key: str = Field(default="", max_length=4000)
+    tunnel_endpoint: str = Field(default="", max_length=1200)
+
+
+class DatabaseSourceTestRequest(BaseModel):
+    db_type: str = Field(min_length=1, max_length=64)
+    config: DatabaseSourceConfig
+
+
+class DatabaseSourceListTablesRequest(BaseModel):
+    db_type: str = Field(min_length=1, max_length=64)
+    config: DatabaseSourceConfig
+    limit: int = Field(default=500, ge=1, le=5000)
+
+
+class DatabaseSourceSyncRequest(BaseModel):
+    db_type: str = Field(min_length=1, max_length=64)
+    config: DatabaseSourceConfig
+    table: str = Field(min_length=1, max_length=240)
+    limit: int = Field(default=5000, ge=1, le=50000)
+
+
 class AiEventAnalysisRequest(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     country: str = Field(min_length=1, max_length=160)
@@ -203,3 +244,21 @@ class AiEventAnalysisRequest(BaseModel):
     provider_id: str | None = Field(default=None, max_length=64)
     model: str | None = Field(default=None, max_length=240)
     focus: str | None = Field(default=None, max_length=1000)
+
+
+class PortCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    port_type: Literal["sea", "land", "air", "rail"]
+    longitude: float = Field(ge=-180, le=180)
+    latitude: float = Field(ge=-90, le=90)
+    risk_level: RiskLevel = "blue"
+    enabled: bool = True
+
+
+class PortUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    port_type: Literal["sea", "land", "air", "rail"] | None = None
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    risk_level: RiskLevel | None = None
+    enabled: bool | None = None

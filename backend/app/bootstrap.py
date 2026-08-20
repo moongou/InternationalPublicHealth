@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -10,7 +11,8 @@ from sqlalchemy import func, select
 from .config import Settings
 from .database import Database
 from .demo_data import ALERTS, COUNTRIES, EVENTS, RISK_HISTORY, TRANSFER_LINKS
-from .models import Alert, BootstrapMarker, Country, CountryRisk, CountryRiskHistory, Disease, DiseaseEvent, EventSource, RuleDefinition, TransferLink, User
+from .models import Alert, BootstrapMarker, Country, CountryRisk, CountryRiskHistory, Disease, DiseaseEvent, EventSource, Port, RuleDefinition, TransferLink, User
+from .ports_data import PORTS
 from .security import hash_password
 
 
@@ -48,6 +50,20 @@ def bootstrap_database(database: Database, settings: Settings) -> None:
                 )
             )
 
+        # 开发阶段免密超级管理员（如 rfg）：不存在则创建，角色始终为 system_admin
+        for dev_username in settings.dev_passwordless_users:
+            dev_user = session.scalar(select(User).where(User.username == dev_username))
+            if dev_user is None:
+                session.add(
+                    User(
+                        username=dev_username,
+                        display_name=f"{dev_username}（开发免密管理员）",
+                        password_hash=hash_password("Aa1!" + secrets.token_urlsafe(48)),
+                        role="system_admin",
+                        status="active",
+                    )
+                )
+
         if settings.deployment_mode == "internet" and not session.get(BootstrapMarker, SOURCE_PRESETS_MARKER):
             if not session.scalar(select(func.count()).select_from(EventSource)):
                 session.add_all([
@@ -69,6 +85,17 @@ def bootstrap_database(database: Database, settings: Settings) -> None:
                     published_at=published_at,
                 )
                 for rule_id, rule_key, name, rule_type, description, condition, action, priority in SYSTEM_RULES
+            ])
+
+        # 内网口岸库：海、陆、空、铁全量口岸预生成（幂等，非演示数据，不依赖 seed_demo_data）
+        if settings.deployment_mode == "intranet" and not session.scalar(select(func.count()).select_from(Port)):
+            session.add_all([
+                Port(
+                    name=item["name"], port_type=item["type"],
+                    longitude=item["lng"], latitude=item["lat"],
+                    risk_level=item["risk"], enabled=True,
+                )
+                for item in PORTS
             ])
 
         if not settings.seed_demo_data:

@@ -37,6 +37,8 @@ def _base_app(settings: Settings) -> FastAPI:
     async def lifespan(app: FastAPI):
         try:
             bootstrap_database(database, settings)
+            # 启动时补建业务索引（对存量表生效，幂等）
+            database.ensure_indexes()
             if settings.enable_maintenance:
                 app.state.maintenance.start()
             if settings.deployment_mode == "internet":

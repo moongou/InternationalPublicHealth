@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from ..auth import Principal, get_session, require_roles
 from ..llm import LlmProviderError, validate_provider_url
 from ..models import ApiRequestMetric, Alert, AuditLog, BackupRecord, DiseaseEvent, EventSource, LlmProvider, Passenger, ReceivedPackage, RuleExecutionLog, TransferTask, User
-from ..schemas import BackupCreate, BackupRestore, LlmProviderCreate, LlmProviderUpdate, PasswordReset, UserCreate, UserUpdate
+from ..schemas import BackupCreate, BackupRestore, LlmProviderCreate, LlmProviderUpdate, LlmTestModelsRequest, PasswordReset, UserCreate, UserUpdate
 from ..security import hash_password
 
 
@@ -58,6 +58,39 @@ def _set_default_provider(session: Session, selected: LlmProvider) -> None:
     if selected.is_default:
         for item in session.scalars(select(LlmProvider).where(LlmProvider.provider_id != selected.provider_id)).all():
             item.is_default = False
+
+
+@router.get("/database/status")
+def database_status(request: Request, _: Principal = Depends(admin_only)) -> dict[str, Any]:
+    """数据库全量状态：引擎、文件大小、WAL、完整性、连接池、各表行数。"""
+    try:
+        return request.app.state.database.status()
+    except Exception as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, f"数据库状态获取失败: {exc}") from exc
+
+
+@router.get("/database/test")
+def database_test(request: Request, _: Principal = Depends(admin_only)) -> dict[str, Any]:
+    """数据库连接测试：延迟与版本。"""
+    try:
+        return request.app.state.database.health_check()
+    except Exception as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, f"数据库连接失败: {exc}") from exc
+
+
+@router.post("/database/optimize")
+def database_optimize(request: Request, _: Principal = Depends(admin_only), session: Session = Depends(get_session)) -> dict[str, Any]:
+    """数据库维护：WAL checkpoint 截断、查询统计更新、补建缺失索引。"""
+    try:
+        result = request.app.state.database.optimize()
+        session.add(AuditLog(
+            log_type="operation", actor="admin-api", actor_role="system_admin",
+            ip_address="127.0.0.1", action="数据库维护", resource="database",
+            detail=str(result), result="success",
+        ))
+        return {"status": "completed", **result}
+    except Exception as exc:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"数据库维护失败: {exc}") from exc
 
 
 @router.get("/stats/overview")
@@ -235,6 +268,29 @@ async def test_llm_provider(
     item.last_tested_at = datetime.now(timezone.utc)
     session.flush()
     return result
+
+
+@router.post("/llm/providers/{provider_id}/test-models")
+async def test_llm_models(
+    provider_id: str, body: LlmTestModelsRequest, request: Request,
+    _: Principal = Depends(admin_only), session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """连续测试多个模型，逐个返回连接状态与连接时长。"""
+    item = session.get(LlmProvider, provider_id)
+    if not item:
+        raise HTTPException(404, "大语言模型供应商不存在")
+    if not body.models:
+        raise HTTPException(422, "请先获取模型列表或指定要测试的模型")
+    try:
+        results = await request.app.state.llm_gateway.test_models(item, body.models)
+    except LlmProviderError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    succeeded = [result for result in results if result["status"] == "success"]
+    item.last_test_status = "success" if succeeded else "failed"
+    item.last_test_message = f"连续测试 {len(results)} 个模型，成功 {len(succeeded)} 个"
+    item.last_tested_at = datetime.now(timezone.utc)
+    session.flush()
+    return {"provider_id": provider_id, "results": results}
 
 
 @router.post("/users", status_code=status.HTTP_201_CREATED)

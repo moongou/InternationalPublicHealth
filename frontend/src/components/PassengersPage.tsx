@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowRight, BadgeCheck, CheckCircle2, ChevronRight, FileUp, Filter, Plane, Plus, Search, ShieldCheck, Siren, UserRoundCheck, UsersRound, X } from 'lucide-react'
+import { AlertTriangle, ArrowRight, BadgeCheck, CheckCircle2, ChevronRight, Database, FileUp, Filter, Plane, Plus, Search, ShieldCheck, Siren, UserRoundCheck, UsersRound, X } from 'lucide-react'
 import type { Country, PassengerRecord, RiskLevel } from '../types'
 import { levelMeta } from '../utils'
 import { postJson, requestJson, uploadFile } from '../api'
+import DatabaseSourcePanel from './DatabaseSourcePanel'
 
 interface PassengerRow {
   id: string; name: string; document: string; nationality: string; origin: string; transit: string; port: string; flight: string; time: string; score: number; level: RiskLevel; declaration: boolean; reasons: string[]; ruleVersion: string; matchedAt: string
@@ -24,6 +25,7 @@ export default function PassengersPage({ countries, connected }: { countries: Co
   const [riskFilter, setRiskFilter] = useState<'all'|RiskLevel>('all')
   const [selected, setSelected] = useState<PassengerRow | null>(null)
   const [modal, setModal] = useState(false)
+  const [dbPanel, setDbPanel] = useState(false)
   const [toast, setToast] = useState('')
   const [busy, setBusy] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -63,7 +65,9 @@ export default function PassengersPage({ countries, connected }: { countries: Co
   const hitCount=rows.filter(row=>row.level!=='blue').length
   const declarationRate=rows.length?rows.filter(row=>row.declaration).length/rows.length*100:100
   return <div className="business-page page-enter passenger-page">
-    <section className="page-heading compact-heading"><div><span className="eyebrow">PORT HEALTH CONTROL · INTRANET</span><h1>旅客风险预警</h1><p>基于14天旅居史、健康申报及中转链路进行实时风险匹配。</p></div><div className="heading-actions"><button className="secondary-button" disabled={busy} onClick={()=>fileRef.current?.click()}><FileUp size={16}/>批量导入</button><input ref={fileRef} hidden type="file" accept=".csv,.jsonl,.ndjson" onChange={event=>event.target.files?.[0]&&importFile(event.target.files[0])}/><button className="primary-button" disabled={busy} onClick={() => setModal(true)}><Plus size={16}/>录入旅客</button></div></section>
+    <section className="page-heading compact-heading"><div><span className="eyebrow">PORT HEALTH CONTROL · INTRANET</span><h1>旅客风险预警</h1><p>基于14天旅居史、健康申报及中转链路进行实时风险匹配。</p></div><div className="heading-actions"><button className="secondary-button" disabled={busy} onClick={()=>setDbPanel(value=>!value)}><Database size={16}/>{dbPanel?'收起数据库':'连接数据库'}</button><button className="secondary-button" disabled={busy} onClick={()=>fileRef.current?.click()}><FileUp size={16}/>批量导入</button><input ref={fileRef} hidden type="file" accept=".csv,.jsonl,.ndjson" onChange={event=>event.target.files?.[0]&&importFile(event.target.files[0])}/><button className="primary-button" disabled={busy} onClick={() => setModal(true)}><Plus size={16}/>录入旅客</button></div></section>
+
+    {dbPanel && <DatabaseSourcePanel onImported={(records)=>{const imported=records.map(toRow);setRows(current=>[...imported,...current]);setTotal(value=>value+records.length);setSelected(imported[0]??selected)}}/>}
 
     <section className="passenger-kpis">
       <article><span className="round-icon cyan"><UsersRound size={20}/></span><div><small>累计风险匹配</small><strong>{total}</strong><em>数据库真实记录</em></div></article>

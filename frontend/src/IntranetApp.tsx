@@ -9,6 +9,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'))
 const EventsPage = lazy(() => import('./components/EventsPage'))
 const RiskPage = lazy(() => import('./components/RiskPage'))
 const PassengersPage = lazy(() => import('./components/PassengersPage'))
+const PortsPage = lazy(() => import('./components/PortsPage'))
 const ReceiverPage = lazy(() => import('./components/ReceiverPage'))
 const RulesPage = lazy(() => import('./components/RulesPage'))
 const AdminPage = lazy(() => import('./components/AdminPage'))
@@ -20,6 +21,6 @@ export default function IntranetApp(){
  if(!platform.user)return <LoginPage mode="intranet" onLogin={platform.login}/>
  if(platform.error)return <div className="boot-screen error"><AlertTriangle size={36}/><h1>内网平台加载失败</h1><p>{platform.error}</p><button className="primary-button" onClick={platform.reload}><RefreshCw size={16}/>重试</button><button className="text-button" onClick={platform.logout}>退出登录</button></div>
  if(!platform.data)return <div className="boot-screen"><div className="boot-mark"><Globe2 size={42}/><span/></div><h1>内网口岸预警平台</h1><p>正在加载本地镜像数据</p><LoaderCircle className="boot-spinner" size={22}/></div>
- const data=platform.data;const content:Partial<Record<PageId,React.ReactNode>>={dashboard:<Dashboard data={data} onOpenMap={openMap} onNavigate={setPage} mode="intranet"/>,events:<EventsPage events={data.events}/>,risk:<RiskPage countries={data.countries} alerts={data.alerts} trend={data.trend} rules={data.rules} onOpenMap={openMap} connected/>,passengers:<PassengersPage countries={data.countries} connected/>,transfer:<ReceiverPage/>,rules:<RulesPage rules={data.rules} connected/>,admin:<AdminPage connected/>}
+ const data=platform.data;const content:Partial<Record<PageId,React.ReactNode>>={dashboard:<Dashboard data={data} onOpenMap={openMap} onNavigate={setPage} mode="intranet"/>,events:<EventsPage events={data.events}/>,risk:<RiskPage countries={data.countries} alerts={data.alerts} trend={data.trend} rules={data.rules} onOpenMap={openMap} connected/>,passengers:<PassengersPage countries={data.countries} connected/>,ports:<PortsPage connected/>,transfer:<ReceiverPage/>,rules:<RulesPage rules={data.rules} connected/>,admin:<AdminPage connected/>}
  return <><Layout page={page} onPageChange={setPage} onOpenMap={openMap} connected mode="intranet" sidebarOpen={sidebarOpen} onSidebarToggle={()=>setSidebarOpen(v=>!v)} user={platform.user} onLogout={platform.logout} sourceHealth={data.stats.source_health} alertCount={data.alerts.length} lastUpdated={data.stats.last_updated}><Suspense fallback={<div className="page-loader"><LoaderCircle size={28}/><span>正在加载业务模块</span></div>}>{content[page]??content.dashboard}</Suspense></Layout>{mapActivated&&<Suspense fallback={null}><MapDrawer open={mapOpen} onClose={()=>setMapOpen(false)} countries={data.countries} events={data.events} links={data.links} mode="intranet"/></Suspense>}</>
 }

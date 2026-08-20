@@ -1,4 +1,16 @@
 export type RiskLevel = 'red' | 'orange' | 'yellow' | 'blue'
+export type PortType = 'sea' | 'land' | 'air' | 'rail'
+
+export interface Port {
+  port_id: string
+  name: string
+  port_type: PortType
+  longitude: number
+  latitude: number
+  risk_level: RiskLevel
+  enabled: boolean
+  updated_at: string
+}
 
 export interface Country {
   code: string
@@ -25,6 +37,7 @@ export interface DiseaseEvent {
   deaths: number
   level: RiskLevel
   source: string
+  source_url?: string
   published_at: string
   confidence: number
   coordinates: [number, number]
@@ -121,4 +134,4 @@ export interface PassengerRecord {
   }
 }
 
-export type PageId = 'dashboard' | 'sources' | 'events' | 'risk' | 'passengers' | 'transfer' | 'rules' | 'admin'
+export type PageId = 'dashboard' | 'sources' | 'events' | 'risk' | 'passengers' | 'transfer' | 'rules' | 'admin' | 'ports'

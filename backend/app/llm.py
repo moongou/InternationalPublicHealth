@@ -156,6 +156,28 @@ class LlmGateway:
             "models": models,
         }
 
+    async def test_models(self, provider: LlmProvider, models: list[str]) -> list[dict[str, Any]]:
+        """连续测试多个模型，逐个返回连接状态与连接时长。"""
+        results: list[dict[str, Any]] = []
+        for model in models:
+            started = time.perf_counter()
+            try:
+                answer = await self.chat(provider, model, "只回复 OK，用于连接测试。", max_tokens=8)
+                results.append({
+                    "model": model,
+                    "status": "success",
+                    "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                    "message": f"连接成功，模型响应：{answer.strip()[:80] or '（空响应）'}",
+                })
+            except LlmProviderError as exc:
+                results.append({
+                    "model": model,
+                    "status": "failed",
+                    "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                    "message": str(exc),
+                })
+        return results
+
     async def extract_events(
         self, provider: LlmProvider, model: str, content: bytes, source_name: str, source_url: str,
         prompt_template: str | None = None,

@@ -4,6 +4,10 @@ httpx==0.28.1
 SQLAlchemy==2.0.43
 alembic==1.16.5
 psycopg[binary]==3.2.10
+# 旅客数据库数据源连接（广泛数据库能力）
+pymysql==1.1.1
+# 阿里云 ODPS / MaxCompute 连接（专用驱动）
+pyodps==0.13.1
 cryptography==45.0.7
 bcrypt==4.3.0
 PyJWT==2.10.1
