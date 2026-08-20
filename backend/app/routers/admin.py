@@ -19,6 +19,7 @@ from ..security import hash_password
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 admin_only = require_roles("system_admin", require_mfa=True)
+admin_required = require_roles("system_admin")
 audit_access = require_roles("auditor")
 
 
@@ -162,13 +163,13 @@ def users(_: Principal = Depends(admin_only), session: Session = Depends(get_ses
 
 
 @router.get("/llm/providers")
-def llm_providers(_: Principal = Depends(admin_only), session: Session = Depends(get_session)) -> list[dict[str, Any]]:
+def llm_providers(_: Principal = Depends(admin_required), session: Session = Depends(get_session)) -> list[dict[str, Any]]:
     return [_llm_provider(item) for item in session.scalars(select(LlmProvider).order_by(LlmProvider.created_at)).all()]
 
 
 @router.post("/llm/providers", status_code=status.HTTP_201_CREATED)
 def create_llm_provider(
-    body: LlmProviderCreate, request: Request, _: Principal = Depends(admin_only), session: Session = Depends(get_session),
+    body: LlmProviderCreate, request: Request, _: Principal = Depends(admin_required), session: Session = Depends(get_session),
 ) -> dict[str, Any]:
     try:
         base_url = validate_provider_url(body.base_url)
@@ -193,7 +194,7 @@ def create_llm_provider(
 @router.patch("/llm/providers/{provider_id}")
 def update_llm_provider(
     provider_id: str, body: LlmProviderUpdate, request: Request,
-    _: Principal = Depends(admin_only), session: Session = Depends(get_session),
+    _: Principal = Depends(admin_required), session: Session = Depends(get_session),
 ) -> dict[str, Any]:
     item = session.get(LlmProvider, provider_id)
     if not item:
@@ -217,7 +218,7 @@ def update_llm_provider(
 
 @router.delete("/llm/providers/{provider_id}")
 def delete_llm_provider(
-    provider_id: str, _: Principal = Depends(admin_only), session: Session = Depends(get_session),
+    provider_id: str, _: Principal = Depends(admin_required), session: Session = Depends(get_session),
 ) -> dict[str, str]:
     item = session.get(LlmProvider, provider_id)
     if not item:
@@ -273,7 +274,7 @@ async def test_llm_provider(
 @router.post("/llm/providers/{provider_id}/test-models")
 async def test_llm_models(
     provider_id: str, body: LlmTestModelsRequest, request: Request,
-    _: Principal = Depends(admin_only), session: Session = Depends(get_session),
+    _: Principal = Depends(admin_required), session: Session = Depends(get_session),
 ) -> dict[str, Any]:
     """连续测试多个模型，逐个返回连接状态与连接时长。"""
     item = session.get(LlmProvider, provider_id)

@@ -30,6 +30,16 @@ export default function Dashboard({ data, onOpenMap, onNavigate, mode }: Dashboa
   const globalIndex=latestTrend?.global??(data.countries.length?data.countries.reduce((sum,country)=>sum+country.risk_score,0)/data.countries.length:0)
   const globalChange=firstTrend?.global?((globalIndex-firstTrend.global)/firstTrend.global*100):0
   const sourceCount=Object.values(data.stats.source_health).reduce((sum,value)=>sum+value,0)
+  const hasPartial = useMemo(() => data.trend.some((p) => p.partial), [data.trend])
+  const trendSeries = useMemo(() => {
+    const firstPartial = data.trend.findIndex((p) => p.partial)
+    const anchor = firstPartial > 0 ? firstPartial - 1 : -1
+    return data.trend.map((p, i) => ({
+      ...p,
+      globalActual: p.partial ? null : p.global,
+      globalForecast: p.partial ? (p.forecast ?? p.global) : (i === anchor ? p.global : null),
+    }))
+  }, [data.trend])
 
   return (
     <div className="dashboard page-enter">
@@ -68,17 +78,19 @@ export default function Dashboard({ data, onOpenMap, onNavigate, mode }: Dashboa
           <div className="trend-summary"><strong>{globalIndex.toFixed(1)}</strong><span>{globalChange>=0?<TrendingUp size={14}/>:<TrendingDown size={14}/>} 历史区间 {globalChange>=0?'+':''}{globalChange.toFixed(1)}%</span><small>综合风险指数</small></div>
           <div className="chart-wrap">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.trend} margin={{ top: 8, right: 12, left: -22, bottom: 0 }}>
+              <AreaChart data={trendSeries} margin={{ top: 8, right: 12, left: -22, bottom: 0 }}>
                 <defs><linearGradient id="riskFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#33d6c7" stopOpacity={0.34}/><stop offset="95%" stopColor="#33d6c7" stopOpacity={0}/></linearGradient></defs>
                 <CartesianGrid stroke="rgba(151,172,199,.09)" vertical={false} />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#718399', fontSize: 11 }} />
-                <YAxis domain={[35, 90]} axisLine={false} tickLine={false} tick={{ fill: '#718399', fontSize: 11 }} />
+                <YAxis domain={['auto', 'auto']} axisLine={false} tickLine={false} tick={{ fill: '#718399', fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: '#101e2e', border: '1px solid #294056', borderRadius: 10, color: '#dbe9f6' }} labelStyle={{ color: '#8da2b8' }} />
-                <Area type="monotone" dataKey="global" name="全球指数" stroke="#33d6c7" strokeWidth={2.4} fill="url(#riskFill)" activeDot={{ r: 5, fill: '#33d6c7', stroke: '#07111f', strokeWidth: 3 }} />
+                <Area type="monotone" dataKey="globalActual" name="全球指数" stroke="#33d6c7" strokeWidth={2.4} fill="url(#riskFill)" activeDot={{ r: 5, fill: '#33d6c7', stroke: '#07111f', strokeWidth: 3 }} connectNulls={false} />
+                {hasPartial && <Area type="monotone" dataKey="globalForecast" name="预测趋势" stroke="#33d6c7" strokeWidth={2} strokeDasharray="6 4" fill="transparent" dot={{ r: 3, fill: '#33d6c7', stroke: '#07111f', strokeWidth: 2 }} connectNulls={false} />}
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          <div className="chart-legend"><span><i style={{ background: '#33d6c7' }} />全球 {latestTrend?.global?.toFixed(1)??'—'}</span><span><i style={{ background: '#ff6b7f' }} />非洲 {latestTrend?.africa?.toFixed(1)??'—'}</span><span><i style={{ background: '#f5b84d' }} />亚洲 {latestTrend?.asia?.toFixed(1)??'—'}</span><span><i style={{ background: '#6d8cff' }} />美洲 {latestTrend?.americas?.toFixed(1)??'—'}</span></div>
+          <div className="chart-legend"><span><i style={{ background: '#33d6c7' }} />全球 {latestTrend?.global?.toFixed(1)??'—'}</span>{hasPartial&&<span><i style={{ background: '#33d6c7', opacity:.5 }} />预测趋势 {latestTrend?.forecast?.toFixed(1)??'—'}</span>}</div>
+          {hasPartial&&<div className="trend-partial-note"><TrendingUp size={13}/>最近一天为部分国家/地区采集（覆盖率 {Math.round((latestTrend?.coverage??0)*100)}%），虚线为预测趋势，不代表全量风险值。</div>}
         </article>
 
         <article className="panel risk-rank-panel">

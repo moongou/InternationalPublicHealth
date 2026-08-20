@@ -18,6 +18,7 @@ const MapDrawer = lazy(() => import('./components/MapDrawer'))
 export default function IntranetApp(){
  const platform=usePlatform('intranet');const[page,setPage]=useState<PageId>('dashboard');const[mapOpen,setMapOpen]=useState(false);const[mapActivated,setMapActivated]=useState(false);const[sidebarOpen,setSidebarOpen]=useState(false);const openMap=()=>{setMapActivated(true);setMapOpen(true)}
  useEffect(()=>{const open=()=>openMap();window.addEventListener('open-global-map',open);return()=>window.removeEventListener('open-global-map',open)},[])
+ useEffect(()=>{document.title='口岸公共卫生内网预警平台'},[])
  if(!platform.user)return <LoginPage mode="intranet" onLogin={platform.login}/>
  if(platform.error)return <div className="boot-screen error"><AlertTriangle size={36}/><h1>内网平台加载失败</h1><p>{platform.error}</p><button className="primary-button" onClick={platform.reload}><RefreshCw size={16}/>重试</button><button className="text-button" onClick={platform.logout}>退出登录</button></div>
  if(!platform.data)return <div className="boot-screen"><div className="boot-mark"><Globe2 size={42}/><span/></div><h1>内网口岸预警平台</h1><p>正在加载本地镜像数据</p><LoaderCircle className="boot-spinner" size={22}/></div>

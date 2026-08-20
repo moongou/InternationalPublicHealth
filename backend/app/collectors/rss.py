@@ -27,7 +27,7 @@ class RSSSourceAdapter(BaseSourceAdapter):
             description = value("description") or value("summary") or value("content")
             combined = f"{title} {description}"
             code, country = country_from_text(combined)
-            if code == "UNK" or not title:
+            if not title:
                 continue
             published_raw = value("pubDate") or value("published") or value("updated")
             try:

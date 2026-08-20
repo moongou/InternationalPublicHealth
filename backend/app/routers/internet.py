@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hmac
 from pathlib import Path
 from typing import Any
@@ -171,9 +172,28 @@ def delete_source(
 
 
 @router.post("/sources/run", status_code=status.HTTP_202_ACCEPTED)
-async def run_sources(body: SourceRunRequest, request: Request, _: Principal = Depends(analyst_access)) -> dict[str, Any]:
-    results = await request.app.state.collectors.run_all(body.sources)
-    return {"status": "completed", "results": results}
+async def run_sources(body: SourceRunRequest, request: Request, _: Principal = Depends(analyst_access), session: Session = Depends(get_session)) -> dict[str, Any]:
+    sources = body.sources
+    if not sources:
+        sources = list(session.scalars(select(EventSource.source_id).where(EventSource.enabled.is_(True))).all())
+    job = request.app.state.collection_jobs.create(sources)
+    asyncio.create_task(request.app.state.collectors.run_job(job))
+    return {"job_id": job.job_id, "status": "started"}
+
+
+@router.get("/sources/run/{job_id}")
+def run_snapshot(job_id: str, request: Request, _: Principal = Depends(analyst_access)) -> dict[str, Any]:
+    job = request.app.state.collection_jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "采集任务不存在或已过期")
+    return job.snapshot()
+
+
+@router.post("/sources/run/{job_id}/cancel")
+def run_cancel(job_id: str, request: Request, _: Principal = Depends(analyst_access)) -> dict[str, Any]:
+    if not request.app.state.collection_jobs.cancel(job_id):
+        raise HTTPException(404, "采集任务不存在或已结束")
+    return {"job_id": job_id, "status": "cancelling"}
 
 
 @router.post("/risk-scores/recalculate")

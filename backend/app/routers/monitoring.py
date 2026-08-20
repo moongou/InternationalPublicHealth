@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -114,22 +114,70 @@ def risk_scores(
     if country_code:
         statement = statement.where(CountryRiskHistory.country_code == country_code.upper())
     rows = session.execute(statement.order_by(CountryRiskHistory.calculated_at)).all()
-    by_date: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+
     region_keys = {"非洲": "africa", "亚洲": "asia", "美洲": "americas", "欧洲": "europe", "大洋洲": "oceania"}
+    # 按完整日期分组（保持时间顺序），并统计每个日期覆盖的国家集合，用于判断当日是否为“部分采集”。
+    dates: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
     for history, country in rows:
-        date_key = history.calculated_at.strftime("%m-%d")
-        by_date[date_key][region_keys.get(country.region, "other")].append(history.score)
-        by_date[date_key]["global"].append(history.score)
-    history_output = []
-    for date_key, groups in by_date.items():
-        point: dict[str, Any] = {"date": date_key}
-        for key, values in groups.items():
+        day = history.calculated_at
+        sort_key = day.strftime("%Y-%m-%d")
+        if sort_key not in dates:
+            dates[sort_key] = {"date": day.strftime("%m-%d"), "values": defaultdict(list), "countries": set()}
+        region = region_keys.get(country.region, "other")
+        dates[sort_key]["values"]["global"].append(history.score)
+        dates[sort_key]["values"][region].append(history.score)
+        dates[sort_key]["countries"].add(country.code)
+
+    # 覆盖率以“历史中出现过的国家全集”为分母，避免演示数据或少量采集被误判为全量。
+    total_countries: set[str] = set()
+    for info in dates.values():
+        total_countries |= info["countries"]
+
+    history_output: list[dict[str, Any]] = []
+    for info in dates.values():
+        point: dict[str, Any] = {"date": info["date"], "forecast": None}
+        for key, values in info["values"].items():
             point[key] = round(sum(values) / len(values), 1)
+        coverage = round(len(info["countries"]) / len(total_countries), 3) if total_countries else 1.0
+        point["coverage"] = coverage
+        point["partial"] = coverage < 0.999
         history_output.append(point)
+
+    _apply_global_forecast(history_output)
+
     selected_countries = _country_rows(session)
     if country_code:
         selected_countries = [item for item in selected_countries if item["code"] == country_code.upper()]
     return {"history": history_output, "countries": selected_countries}
+
+
+def _apply_global_forecast(points: list[dict[str, Any]]) -> None:
+    """当某日为“部分采集”时，用历史完整覆盖点的线性趋势外推全球风险预测值。
+
+    前端据此区分呈现：完整覆盖日用实线，部分覆盖日用虚线作为预测趋势，
+    避免把部分国家的加总直接当作全量风险值，导致趋势线失真。
+    """
+    full = [(i, p["global"]) for i, p in enumerate(points) if p.get("global") is not None and not p.get("partial")]
+    if not any(p.get("partial") for p in points):
+        return
+    slope: float | None = None
+    intercept: float | None = None
+    if len(full) >= 2:
+        xs = [x for x, _ in full]
+        ys = [y for _, y in full]
+        n = len(xs)
+        mx, my = sum(xs) / n, sum(ys) / n
+        denom = sum((x - mx) ** 2 for x in xs)
+        if denom:
+            slope = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / denom
+            intercept = my - slope * mx
+    last_full = full[-1][1] if full else None
+    for i, p in enumerate(points):
+        if p.get("partial") and p.get("global") is not None:
+            if slope is not None and intercept is not None:
+                p["forecast"] = round(max(0.0, min(100.0, slope * i + intercept)), 1)
+            elif last_full is not None:
+                p["forecast"] = last_full
 
 
 @router.get("/alerts")

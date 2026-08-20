@@ -61,6 +61,14 @@ export interface TrendPoint {
   asia: number
   africa: number
   americas: number
+  europe?: number
+  oceania?: number
+  /** 当日全球国家覆盖率（0—1），分母为历史中出现过的国家全集 */
+  coverage?: number
+  /** 当日是否仅覆盖部分国家/地区（部分采集） */
+  partial?: boolean
+  /** 部分采集日的全球风险预测值（用于虚线预测趋势线） */
+  forecast?: number | null
 }
 
 export interface TransferLink {

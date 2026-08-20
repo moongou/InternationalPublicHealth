@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { Bot, CheckCircle2, CloudDownload, Gauge, Layers, Plus, Save, TestTube2, Trash2, X, Zap } from 'lucide-react'
+import { Bot, CheckCircle2, CloudDownload, Gauge, Plus, Save, TestTube2, Trash2, X, Zap } from 'lucide-react'
 import { postJson, requestJson } from '../api'
 
 type ProviderType='openai'|'openai_compatible'|'anthropic'|'gemini'|'ollama'

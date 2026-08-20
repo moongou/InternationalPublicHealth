@@ -5,7 +5,7 @@ import io
 from datetime import datetime, timezone
 
 from .base import BaseSourceAdapter, CollectedEvent
-from .normalizer import COUNTRIES
+from .normalizer import COUNTRIES, country_from_text
 
 
 class JhuCsseAdapter(BaseSourceAdapter):
@@ -18,16 +18,20 @@ class JhuCsseAdapter(BaseSourceAdapter):
         rows = csv.DictReader(io.StringIO(content.decode("utf-8-sig")))
         output: list[CollectedEvent] = []
         for row in rows:
-            country_raw = row.get("Country/Region", "")
-            match = COUNTRIES.get(country_raw.lower())
-            if not match:
+            country_raw = (row.get("Country/Region") or "").strip()
+            if not country_raw:
                 continue
+            match = COUNTRIES.get(country_raw.lower())
+            if match:
+                code, country_name = match
+            else:
+                code, country_name = country_from_text(country_raw, fallback_code="UNK", fallback_name=country_raw)
             date_keys = [key for key in row if key not in {"Province/State", "Country/Region", "Lat", "Long"}]
             cases = int(float(row.get(date_keys[-1], "0") or 0)) if date_keys else 0
             output.append(
                 CollectedEvent(
-                    title=f"{match[1]} COVID-19 累计病例更新", disease="新型冠状病毒感染",
-                    country=match[1], country_code=match[0], source=self.source_name, source_url=self.url,
+                    title=f"{country_name} COVID-19 累计病例更新", disease="新型冠状病毒感染",
+                    country=country_name, country_code=code, source=self.source_name, source_url=self.url,
                     event_type="time_series", cases=cases, deaths=0, confidence=0.98,
                     published_at=datetime.now(timezone.utc), latitude=float(row.get("Lat") or 0), longitude=float(row.get("Long") or 0),
                 )
@@ -39,7 +43,7 @@ class OwidAdapter(BaseSourceAdapter):
     source_id = "owid"
     source_name = "Our World in Data"
     content_type = "text/csv"
-    url = "https://covid.ourworldindata.org/data/owid-covid-data.csv"
+    url = "https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/owid-covid-data.csv"
 
     def parse(self, content: bytes) -> list[CollectedEvent]:
         latest: dict[str, dict[str, str]] = {}

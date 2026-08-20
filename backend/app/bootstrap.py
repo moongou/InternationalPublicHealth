@@ -17,7 +17,7 @@ from .security import hash_password
 
 
 SOURCE_PRESETS_PATH = Path(__file__).resolve().parents[1] / "config" / "source_presets.json"
-SOURCE_PRESETS_MARKER = "internet-source-presets-v1"
+SOURCE_PRESETS_MARKER = "internet-source-presets-v3"
 
 SYSTEM_RULES = [
     ("RISK-v1", "RISK", "全球国家风险加权评分", "risk_score", "按六因子计算国家综合风险", {"all": True}, {"weights": {"severity": .25, "transmission": .25, "scale": .15, "travel": .15, "transit": .10, "capacity": .10}}, 10),
@@ -65,6 +65,7 @@ def bootstrap_database(database: Database, settings: Settings) -> None:
                 )
 
         if settings.deployment_mode == "internet" and not session.get(BootstrapMarker, SOURCE_PRESETS_MARKER):
+            presets = _source_presets()
             if not session.scalar(select(func.count()).select_from(EventSource)):
                 session.add_all([
                     EventSource(
@@ -72,8 +73,24 @@ def bootstrap_database(database: Database, settings: Settings) -> None:
                         url=item["url"], frequency_seconds=item["frequency_seconds"],
                         config_json=item.get("config_json", {}),
                     )
-                    for item in _source_presets()
+                    for item in presets
                 ])
+            else:
+                # 幂等迁移：刷新内置源的 URL / 解析配置，并补入新增内置源；不覆盖用户自行新增的源
+                existing = {source.source_id: source for source in session.scalars(select(EventSource))}
+                for item in presets:
+                    source = existing.get(item["source_id"])
+                    if source is not None:
+                        source.url = item["url"]
+                        source.config_json = item.get("config_json", {})
+                    else:
+                        session.add(
+                            EventSource(
+                                source_id=item["source_id"], name=item["name"], adapter_type=item["adapter_type"],
+                                url=item["url"], frequency_seconds=item["frequency_seconds"],
+                                config_json=item.get("config_json", {}),
+                            )
+                        )
             session.add(BootstrapMarker(marker_key=SOURCE_PRESETS_MARKER))
         if not session.scalar(select(func.count()).select_from(RuleDefinition)):
             published_at = datetime.now(timezone.utc)

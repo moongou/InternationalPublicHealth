@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 from app.collectors.csv_sources import JhuCsseAdapter, OwidAdapter
 from app.collectors.base import CollectedEvent
 from app.collectors.service import CollectorService, build_adapters
-from app.bootstrap import bootstrap_database
+from app.bootstrap import bootstrap_database, _source_presets
 from app.config import load_settings
 from app.database import Database
 from app.models import Country, CountryRisk, DiseaseEvent, EventSource, RawRecord, RuleDefinition, SourceRun
@@ -79,7 +79,7 @@ def test_production_initializes_required_configuration_without_demo_records(tmp_
     database = Database(settings.database_url)
     bootstrap_database(database, settings)
     with database.session() as session:
-        assert session.query(EventSource).count() == 6
+        assert session.query(EventSource).count() == len(_source_presets())
         assert {item.rule_type for item in session.query(RuleDefinition).all()} == {
             "risk_score", "alert_level", "trend_change", "passenger_match", "port_advice",
         }

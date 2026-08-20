@@ -210,7 +210,7 @@ class LlmGateway:
                 code, normalized = country_from_text(f"{country} {title}")
                 country = country or normalized
             if code == "UNK":
-                continue
+                country = country or "待识别地区"
             published_raw = item.get("published_at")
             try:
                 published = datetime.fromisoformat(str(published_raw).replace("Z", "+00:00")) if published_raw else datetime.now(timezone.utc)

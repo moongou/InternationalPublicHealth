@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react'
-import { CheckCircle2, Database, Gauge, PlugZap, RefreshCw, Server, Table2, X, Zap } from 'lucide-react'
+import { CheckCircle2, Database, Gauge, RefreshCw, Table2, X, Zap } from 'lucide-react'
 import { postJson } from '../api'
 import type { PassengerRecord } from '../types'
 

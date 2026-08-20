@@ -163,6 +163,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .trend-summary strong { font-size: 21px; }.trend-summary span { color: #ff7082; font-size: 8px; display: flex; gap: 3px; align-items:center; }.trend-summary small { grid-column:1/3; color:#51687c; font-size:8px; margin-top:3px; }
 .chart-wrap { height: 206px; margin: 21px 9px 0 5px; }
 .chart-legend { height: 31px; display: flex; justify-content: flex-end; align-items: center; gap: 16px; padding: 0 16px; color: #64798d; font-size: 8px; }
+.trend-partial-note { display:flex; align-items:center; gap:6px; margin:0 14px 12px; padding:8px 11px; border:1px dashed rgba(245,184,77,.5); border-radius:8px; background:rgba(245,184,77,.08); color:#e8b45a; font-size:8px; line-height:1.5; }
 .chart-legend span { display: flex; align-items: center; gap: 5px; }.chart-legend i, .regional-legend i, .chart-key i { width: 14px; height: 2px; display:inline-block; border-radius:2px; }
 .risk-ranking { padding: 1px 10px 8px; }
 .risk-rank-row { width: 100%; min-height: 42px; display: grid; grid-template-columns: 25px 29px minmax(130px,1fr) 72px 54px; align-items: center; gap: 7px; border: 0; border-bottom: 1px solid rgba(127,158,187,.09); color: inherit; background: transparent; text-align: left; cursor: pointer; }
@@ -265,3 +266,41 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .source-link{display:inline-flex;align-items:center;gap:4px;color:var(--teal);text-decoration:none;cursor:pointer}
 .source-link:hover{text-decoration:underline}
 .source-link .source-tag{margin:0}
+
+/* ===== 采集进度面板 ===== */
+.danger-button{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 16px;border:1px solid rgba(224,122,122,.42);border-radius:8px;color:#f6c9c9;background:linear-gradient(135deg,#7a2a2a,#5c1e1e);font-size:12px;font-weight:600;cursor:pointer}
+.danger-button:disabled{opacity:.5;cursor:not-allowed}
+.collection-progress-card{max-width:580px}
+.collection-progress-body{display:flex;flex-direction:column;gap:14px;padding:6px 2px}
+.collection-progress-summary{display:flex;flex-direction:column;gap:8px}
+.collection-progress-bar{height:8px;border-radius:999px;background:rgba(127,158,187,.14);overflow:hidden}
+.collection-progress-bar span{display:block;height:100%;background:linear-gradient(90deg,var(--teal),#7cc9c0);border-radius:999px;transition:width .4s ease}
+.collection-progress-summary p{font-size:12px;color:var(--muted);margin:0}
+.collection-progress-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto}
+.collection-progress-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(13,28,43,.4)}
+.collection-progress-icon{display:inline-grid;place-items:center;width:28px;height:28px;flex:0 0 auto;border-radius:8px;color:#7890a6;background:rgba(127,158,187,.12)}
+.collection-progress-item.running .collection-progress-icon{color:var(--teal)}
+.collection-progress-item.success .collection-progress-icon{color:#5fc28a}
+.collection-progress-item.failed .collection-progress-icon{color:#e07a7a}
+.collection-progress-item.cancelled .collection-progress-icon{color:#f0a04b}
+.collection-progress-info{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.collection-progress-info b{font-size:13px;color:var(--text)}
+.collection-progress-info span{font-size:11px;color:var(--muted)}
+.collection-progress-info small{font-size:10px;color:#e07a7a;word-break:break-all}
+.collection-progress-counts{display:flex;flex-direction:column;gap:2px;align-items:flex-end;flex:0 0 auto}
+.collection-progress-counts span{font-size:10px;color:#7890a6}
+.collection-progress-item .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#7890a6}
+.theme-intranet .collection-progress-item{background:rgba(48,33,23,.5)}
+.theme-intranet .collection-progress-bar span{background:linear-gradient(90deg,var(--teal),#e0a050)}
+.theme-intranet .collection-progress-counts span{color:#b39a7e}
+
+/* ===== 运行总览时段选择工具栏 ===== */
+.overview-toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:rgba(13,28,43,.35)}
+.overview-toolbar__label{font-size:12px;color:var(--muted)}
+.overview-range-buttons{display:inline-flex;gap:4px;padding:3px;border:1px solid var(--border);border-radius:9px;background:rgba(127,158,187,.08)}
+.overview-range-buttons button{height:28px;padding:0 14px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.overview-range-buttons button:hover{color:var(--text)}
+.overview-range-buttons button.active{color:#fff;background:var(--teal)}
+.overview-toolbar .secondary-button{margin-left:auto}
+.theme-intranet .overview-toolbar{background:rgba(48,33,23,.45)}
+.theme-intranet .overview-range-buttons button.active{background:var(--teal);color:#20160c}

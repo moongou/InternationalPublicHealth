@@ -1,7 +1,7 @@
 [
   {
     "source_id": "who-dons",
-    "name": "WHO Disease Outbreak News",
+    "name": "WHO 疫情暴发新闻 (Disease Outbreak News)",
     "adapter_type": "rss",
     "url": "https://www.who.int/rss-feeds/news-english.xml",
     "frequency_seconds": 21600,
@@ -9,7 +9,7 @@
   },
   {
     "source_id": "ecdc-cdtr",
-    "name": "ECDC Communicable Disease Threats",
+    "name": "ECDC 传染病威胁周报 (CDTR)",
     "adapter_type": "rss",
     "url": "https://www.ecdc.europa.eu/en/news-events/rss",
     "frequency_seconds": 86400,
@@ -17,7 +17,7 @@
   },
   {
     "source_id": "promed",
-    "name": "ProMED-mail",
+    "name": "ProMED-mail 全球传染病预警",
     "adapter_type": "rss",
     "url": "https://promedmail.org/feed/",
     "frequency_seconds": 900,
@@ -25,7 +25,7 @@
   },
   {
     "source_id": "jhu-csse",
-    "name": "JHU CSSE",
+    "name": "JHU CSSE 全球疫情数据",
     "adapter_type": "jhu_csv",
     "url": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
     "frequency_seconds": 86400,
@@ -33,18 +33,194 @@
   },
   {
     "source_id": "owid",
-    "name": "Our World in Data",
+    "name": "Our World in Data 疫情数据",
     "adapter_type": "owid_csv",
-    "url": "https://covid.ourworldindata.org/data/owid-covid-data.csv",
+    "url": "https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/owid-covid-data.csv",
     "frequency_seconds": 86400,
     "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
   },
   {
     "source_id": "healthmap",
-    "name": "HealthMap",
+    "name": "HealthMap 全球疫情地图",
     "adapter_type": "rss",
     "url": "https://www.healthmap.org/rss.php",
     "frequency_seconds": 86400,
     "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  },
+  {
+    "source_id": "cidrap",
+    "name": "CIDRAP 传染病研究与政策中心",
+    "adapter_type": "rss",
+    "url": "https://www.cidrap.umn.edu/rss.xml",
+    "frequency_seconds": 21600,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  },
+  {
+    "source_id": "africacdc",
+    "name": "非洲疾控中心 (Africa CDC) 疫情通报",
+    "adapter_type": "rss",
+    "url": "https://africacdc.org/feed/",
+    "frequency_seconds": 21600,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  },
+  {
+    "source_id": "outbreak-news-today",
+    "name": "Outbreak News Today 疫情快讯",
+    "adapter_type": "rss",
+    "url": "https://outbreaknewstoday.com/feed/",
+    "frequency_seconds": 21600,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  },
+  {
+    "source_id": "flutrackers",
+    "name": "FluTrackers 全球流感与疫情追踪",
+    "adapter_type": "rss",
+    "url": "https://flutrackers.com/forum/app.php/feed",
+    "frequency_seconds": 21600,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "builtin"}
+  },
+  {
+    "source_id": "who-afro-outbreaks",
+    "name": "WHO 非洲区域办事处疫情通报",
+    "adapter_type": "web_document",
+    "url": "https://www.afro.who.int/health-topics/disease-outbreaks/outbreaks-and-other-emergencies-updates",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "paho-alerts",
+    "name": "泛美卫生组织(PAHO) 流行病学警报",
+    "adapter_type": "web_document",
+    "url": "https://www.paho.org/en/epidemiological-alerts-and-updates",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "who-searo",
+    "name": "WHO 东南亚区域办事处",
+    "adapter_type": "web_document",
+    "url": "https://www.who.int/southeastasia",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "who-wpro",
+    "name": "WHO 西太平洋区域办事处",
+    "adapter_type": "web_document",
+    "url": "https://www.who.int/westernpacific",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "who-europe-situations",
+    "name": "WHO 欧洲区域突发卫生事件",
+    "adapter_type": "web_document",
+    "url": "https://www.who.int/europe/emergencies/situations",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "who-emro-outbreaks",
+    "name": "WHO 东地中海区域疫情",
+    "adapter_type": "web_document",
+    "url": "https://www.emro.who.int/health-topics/outbreaks/index.html",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "cdc-outbreaks",
+    "name": "美国疾控中心(CDC) 疫情通报",
+    "adapter_type": "web_document",
+    "url": "https://www.cdc.gov/outbreaks/index.html",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "cdc-travel-notices",
+    "name": "CDC 旅行健康通告",
+    "adapter_type": "web_document",
+    "url": "https://wwwnc.cdc.gov/travel/notices",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "uk-hsa",
+    "name": "英国卫生安全局(UKHSA)",
+    "adapter_type": "web_document",
+    "url": "https://www.gov.uk/government/organisations/uk-health-security-agency",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "hk-chp",
+    "name": "香港卫生防护中心",
+    "adapter_type": "web_document",
+    "url": "https://www.chp.gov.hk/en/index.html",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "sg-moh",
+    "name": "新加坡卫生部",
+    "adapter_type": "web_document",
+    "url": "https://www.moh.gov.sg/",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "jp-niid",
+    "name": "日本国立感染症研究所(NIID)",
+    "adapter_type": "web_document",
+    "url": "https://www.niid.go.jp/niid/en/",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "au-health-news",
+    "name": "澳大利亚卫生部新闻",
+    "adapter_type": "web_document",
+    "url": "https://www.health.gov.au/news",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "china-cdc",
+    "name": "中国疾病预防控制中心",
+    "adapter_type": "web_document",
+    "url": "https://www.chinacdc.cn/",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "who-influenza-updates",
+    "name": "WHO 全球流感监测更新",
+    "adapter_type": "web_document",
+    "url": "https://www.who.int/teams/global-influenza-programme/surveillance-and-monitoring/influenza-updates",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "who-situation-reports",
+    "name": "WHO 突发卫生事件情况报告",
+    "adapter_type": "web_document",
+    "url": "https://www.who.int/emergencies/situation-reports",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "gideon",
+    "name": "GIDEON 全球传染病数据库",
+    "adapter_type": "web_document",
+    "url": "https://www.gideononline.com/",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
+  },
+  {
+    "source_id": "global-incident-map",
+    "name": "Global Incident Map 全球疫情地图",
+    "adapter_type": "web_document",
+    "url": "https://www.globalincidentmap.com/",
+    "frequency_seconds": 86400,
+    "config_json": {"schedule_type": "interval", "schedule_timezone": "Asia/Shanghai", "parser_mode": "llm", "llm_provider_id": ""}
   }
 ]

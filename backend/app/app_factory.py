@@ -14,6 +14,7 @@ from .backup import BackupService
 from .cache import ResponseCache
 from .bootstrap import bootstrap_database
 from .collectors import CollectorService
+from .collectors.jobs import CollectionJobManager
 from .collectors.scheduler import CollectorScheduler
 from .config import Settings, load_settings
 from .database import Database
@@ -81,6 +82,7 @@ def _base_app(settings: Settings) -> FastAPI:
     app.state.backups = BackupService(settings, database)
     app.state.maintenance = MaintenanceScheduler(app.state.backups, database)
     app.state.cache = ResponseCache(settings)
+    app.state.collection_jobs = CollectionJobManager()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),
