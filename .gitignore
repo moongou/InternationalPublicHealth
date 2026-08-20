@@ -13,3 +13,4 @@ htmlcov/
 .env
 .codebuddy/
 .dev-dashboard/
+scripts/**/__pycache__/
